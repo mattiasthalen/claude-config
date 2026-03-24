@@ -1,1 +1,9 @@
 .worktrees/
+
+# Machine-specific
+settings.local.json
+
+# Editor
+*.swp
+*.swo
+*~

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="${CLAUDE_CONFIG_DIR:-$HOME/repos/claude-config}"
+
+if [ ! -d "$REPO_DIR/.git" ]; then
+  echo '{"systemMessage":"claude-config repo not found at '"$REPO_DIR"'. Run install.sh first."}'
+  exit 0
+fi
+
+cd "$REPO_DIR"
+
+messages=()
+
+if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+  messages+=("has uncommitted changes")
+fi
+
+unpushed=$(git rev-list --count @{upstream}..HEAD 2>/dev/null || echo "0")
+if [ "$unpushed" -gt 0 ]; then
+  messages+=("has $unpushed unpushed commit(s)")
+fi
+
+git fetch --quiet 2>/dev/null || true
+behind=$(git rev-list --count HEAD..@{upstream} 2>/dev/null || echo "0")
+if [ "$behind" -gt 0 ]; then
+  messages+=("is $behind commit(s) behind origin")
+fi
+
+if [ ${#messages[@]} -eq 0 ]; then
+  msg="Global Claude config is in sync with origin."
+else
+  combined=$(printf ", %s" "${messages[@]}")
+  combined=${combined:2}
+  msg="Global Claude config $combined."
+fi
+
+printf '{"systemMessage":"%s"}\n' "$msg"
